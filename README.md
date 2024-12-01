@@ -1,14 +1,5 @@
 # GGUF Tools
 
-Random tools and experiments for manipulating or viewing the GGUF file format. See:
-
-1. https://github.com/ggerganov/llama.cpp
-2. https://github.com/ggerganov/ggml
-
-## Scripts
-
-All scripts support using `--help` for information on the commandline options.
-
 ### `gguf-checksum`
 
 Allows calculating a model's SHA256 without being affected by the exact order of the fields in the file. It's also possible to get checksums of the individual tensors or metadata fields. **Note**: The overall hash will not match that from tools like `sha256sum` since it is based on a sorted version of the fields. The point of the tool is to allow comparing models in a way where the order of the tensors of fields does not affect the result.
@@ -52,25 +43,5 @@ You supply an input metadata GGUF file and optionally an input tensor data GGUF 
 `gguf-frankenstein.py --metadata md.gguf --output result.gguf` — Create `result.gguf` with the key/value metadata from `md.gguf`. This will be a vocab-only model that could be used for training.
 
 ***
-
-### `gguf-tensor-to-image`
-
-Despite the name (and repo) this actually can handle Torch models as well if you have Torch Python support installed. Converts a tensor or tensors to an image representation. See the `CFG_` values near the top. Some tensors are more interesting than others. Check out an `attn_q` tensor if you get the chance. Oh baby, there's a lot going on. For GGUF, the script can deal with `F32`, `F16` and `Q8_0` tensors and includes a tiny `Q8_0` quantization/dequantization implementation. For Torch, it supports tensors in `float32`, `float16` and `bfloat16` formats.
-
-Here's what it can look like (little slice of an Orca 3B `attn_q`):
-
-![attn_q with no pants on](assets/attn_q_snippet.png)
-
- **Examples:**
-
- `gguf-tensor-to-image.py --output out.png model.gguf output.weight` — Save the `output.weight` tensor in `model.gguf` as `out.png`
-
- `gguf-tensor-to-image.py --output out.png model.gguf output.weight token_embd.weight` — Save the specified tensors in `model.gguf` as `output.weight.out.png` and `token_embd.weight.out.png`
-
- `gguf-tensor-to-image.py --output ./imgs/tensor.png model.gguf '*'` — Save all tensors in `model.gguf` like `./imgs/output.weight.tensor.png`. *Note*: Be sure to quote or escape `*` when specifying it as an option.
-
-***
-
-## Disclaimer
 
 These scripts are experimental and likely not very well tested. They may or may not work. Use at your own risk.
