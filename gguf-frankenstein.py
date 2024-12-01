@@ -12,7 +12,17 @@ from gguf.gguf_reader import GGUFReader
 from gguf.gguf_writer import GGUFWriter
 
 
-# ruff: noqa: SLF001
+def convert_numpy_value(val):
+    """Convert numpy types to Python native types."""
+    if isinstance(val, np.integer):
+        return int(val)
+    if isinstance(val, np.floating):
+        return float(val)
+    if isinstance(val, np.ndarray):
+        return val.tolist()
+    return val
+
+
 def go(args: argparse.Namespace) -> None:
     print(f"* Loading metadata source: {args.metadata}")
     md_reader = GGUFReader(args.metadata, "c")
@@ -47,22 +57,15 @@ def go(args: argparse.Namespace) -> None:
             raise ValueError(msg)
         if kv.types[0] == GGUFValueType.ARRAY:
             itype = kv.types[1]
-            gw.add_key(kv.name)
-            chunk = BytesIO()
-            chunk.write(gw._pack("I", GGUFValueType.ARRAY))
-            chunk.write(gw._pack("I", itype))
-            chunk.write(gw._pack("Q", len(kv.data)))
-            if itype == GGUFValueType.STRING:
-                for di in kv.data:
-                    sval = kv.parts[di].tobytes()
-                    chunk.write(gw._pack("Q", len(sval)))
-                    chunk.write(sval)
-            else:
-                for di in kv.data:
-                    chunk.write(kv.parts[di].tobytes())
-            gw.kv_data += chunk.getvalue()
-            del chunk
-            gw.kv_data_count += 1
+            # Handle array type using add_key_value
+            array_data = []
+            for di in kv.data:
+                if itype == GGUFValueType.STRING:
+                    array_data.append(str(kv.parts[di].tobytes(), encoding="utf-8"))
+                else:
+                    val = kv.parts[di][0]
+                    array_data.append(convert_numpy_value(val))
+            gw.add_key_value(kv.name, array_data, GGUFValueType.ARRAY)
         elif kv.types[0] == GGUFValueType.STRING:
             gw.add_string(
                 kv.name,
@@ -72,8 +75,9 @@ def go(args: argparse.Namespace) -> None:
                 ),
             )
         else:
-            gw.add_key(kv.name)
-            gw.add_val(kv.parts[kv.data[0]][0], kv.types[0])
+            # Handle simple types using add_key_value
+            val = convert_numpy_value(kv.parts[kv.data[0]][0])
+            gw.add_key_value(kv.name, val, kv.types[0])
     print()
     if td_reader is not None:
         print("* Adding tensor metadata: ", end="")
